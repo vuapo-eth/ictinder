@@ -1,0 +1,9 @@
+{
+  "version": "1.0-SNAPSHOT",
+  "name": "IcTinder",
+  "main_class": "org.iota.ictinder.IcTinder",
+  "description": "IcTinder is a service maintaining your Ict neighbors. It will add and remove neighbors automatically depending on their reliability to ensure that you are always well-connected.",
+  "repository": "mikrohash/ictinder",
+  "gui_port": -1,
+  "supported_versions": ["0.6-SNAPSHOT"]
+}

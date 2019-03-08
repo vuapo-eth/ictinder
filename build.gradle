@@ -1,0 +1,30 @@
+plugins {
+    id 'java'
+    id 'idea'
+}
+
+group 'org.iota.ictinder'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.7
+repositories {
+    mavenCentral()
+    maven { url "https://jitpack.io" }
+}
+
+dependencies {
+    compile 'com.github.iotaledger:ict:58189478f9574f5d5211483b8e3291acda1c4788'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.11.1'
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.11.1'
+    compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.21'
+    compile 'org.json:json:20171018'
+}
+
+task ixi(type: Jar) {
+    archiveName = 'ictinder.jar'
+    destinationDir = file("$rootDir")
+    from("./") { include 'module.json' }
+    exclude ("org/iota/ict/**")
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
