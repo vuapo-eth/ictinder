@@ -109,7 +109,7 @@ public class IcTinder extends IxiModule {
             stats.put(statKey, 0);
         for(int j = 0; j < statsOfRounds.length(); j++) {
             JSONObject statsFromSomeRound = statsOfRounds.getJSONObject(j);
-            if(statsFromSomeRound.getLong("timestamp") > (System.currentTimeMillis()-SYNC_INTERVAL_MS)/1000)
+            if(statsFromSomeRound.getLong("timestamp")/1000 > (System.currentTimeMillis()-SYNC_INTERVAL_MS)/1000) // divide both sides by 1000 for clarification that both are ms
                 accumulateStats(stats, statsFromSomeRound);
         }
         return stats;
