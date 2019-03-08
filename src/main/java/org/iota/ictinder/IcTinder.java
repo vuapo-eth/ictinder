@@ -58,12 +58,12 @@ public class IcTinder extends IxiModule {
     }
 
     private void sync() {
+        last_sync = System.currentTimeMillis();
         if(nodeAddress.startsWith("localhost")) {
             LOGGER.warn("Cannot sync with IcTinder API: please configure IcTinder.ixi first.");
             return;
         }
         LOGGER.debug("syncing ...");
-        last_sync = System.currentTimeMillis();
         try {
             JSONArray neighborsJSON = getNeighbors();
             List<String> currentNeighbors = extractNeighborAddresses(neighborsJSON);
@@ -89,11 +89,13 @@ public class IcTinder extends IxiModule {
         return requestParameters;
     }
 
-    private static JSONObject collectStatsOfAllNeighbors(JSONArray neighborsJSON) {
+    private JSONObject collectStatsOfAllNeighbors(JSONArray neighborsJSON) {
         JSONObject allStats = new JSONObject();
         for(int i = 0; i < neighborsJSON.length(); i++) {
             JSONObject neighbor = neighborsJSON.getJSONObject(i);
             String neighborAddress = neighbor.getString("address");
+            if(staticNeighbors.contains(neighborAddress))
+                continue;
             JSONArray statsOfRounds = neighbor.getJSONArray("stats");
             JSONObject stats = sumUpAllStats(statsOfRounds);
             allStats.put(neighborAddress, stats);
@@ -220,7 +222,7 @@ public class IcTinder extends IxiModule {
                     .put(Field.ictinder_password.name(), "[ICTINDER BOT]")
                     .put(Field.discord_id.name(), "[ICTINDER BOT]")
                     .put(Field.node_address.name(), "localhost:1337")
-                    .put(Field.static_neighbors.name(), new JSONArray()));
+                    .put(Field.static_neighbors.name(), ""));
             applyConfiguration();
         }
 
@@ -238,9 +240,7 @@ public class IcTinder extends IxiModule {
         }
 
         private void validateIctGUIPort(JSONObject newConfiguration) {
-            if(!(newConfiguration.get(Field.ict_gui_port.name()) instanceof Integer))
-                throw new IllegalPropertyException(Field.ict_gui_port, "not an integer");
-            int guiPort = newConfiguration.getInt(Field.ict_gui_port.name());
+            int guiPort = Integer.parseInt(newConfiguration.get(Field.ict_gui_port.name()).toString());
             if(guiPort < 0 || guiPort > 65535)
                 throw new IllegalPropertyException(Field.ict_gui_port, "not in interval [0,65535]");
         }
@@ -279,8 +279,8 @@ public class IcTinder extends IxiModule {
         }
 
         private void validateStaticNeighbors(JSONObject newConfiguration) {
-            if(!(newConfiguration.get(Field.static_neighbors.name()) instanceof JSONArray))
-                throw new IllegalPropertyException(Field.static_neighbors, "not a JSONArray");
+            if(!(newConfiguration.get(Field.static_neighbors.name()) instanceof String))
+                throw new IllegalPropertyException(Field.static_neighbors, "not a String");
         }
 
         private class IllegalPropertyException extends IllegalArgumentException {
@@ -296,14 +296,8 @@ public class IcTinder extends IxiModule {
             icTinderPassword = configuration.getString(Field.ictinder_password.name());
             discordID = configuration.getString(Field.discord_id.name());
             nodeAddress = configuration.getString(Field.node_address.name());
-            staticNeighbors = stringSetFromJSONArray(configuration.getJSONArray(Field.static_neighbors.name()));
-        }
-
-        private Set<String> stringSetFromJSONArray(JSONArray array) {
-            Set<String> stringSet = new HashSet<>();
-            for(Object element : array.toList())
-                stringSet.add(element.toString());
-            return stringSet;
+            staticNeighbors = new HashSet<>(Arrays.asList(configuration.getString(Field.static_neighbors.name()).replace(" ", "").split(",")));
+            staticNeighbors.remove("");
         }
     }
 
