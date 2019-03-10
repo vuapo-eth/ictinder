@@ -161,6 +161,7 @@ public class IcTinder extends IxiModule {
 
     private JSONArray getNeighbors() {
         Map<String, String> params = new HashMap<>();
+        params.put("timestamp_min", "" + (System.currentTimeMillis() - SYNC_INTERVAL_MS));
         JSONObject getNeighborsResponse = sendIctApiRequest(IctApiPath.GET_NEIGHBORS, params);
         return getNeighborsResponse.getJSONArray("neighbors");
 
