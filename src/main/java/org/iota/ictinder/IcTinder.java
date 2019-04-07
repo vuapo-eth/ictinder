@@ -16,7 +16,7 @@ import java.util.*;
 
 public class IcTinder extends IxiModule {
 
-    private static final String ICTINDER_API = "https://qubiota.com/ictinder/api.php";
+    private static final String ICTINDER_API = "https://qubiota.com/ictinder2/api/v1.0/index.php";
 
     private int guiPort;
     private String nodeAddress;
@@ -26,7 +26,7 @@ public class IcTinder extends IxiModule {
     private Set<String> staticNeighbors = new HashSet<>();
     private final IxiContext context = new IcTinderContext();
     private static final long SYNC_INTERVAL_MS = 3*60000;
-    private long last_sync = 0;
+    private long next_sync = 0;
     private double timeout_factor = 1;
     private static final Logger LOGGER = LogManager.getLogger("IcTinder");
 
@@ -41,7 +41,7 @@ public class IcTinder extends IxiModule {
         while (isRunning()) {
             sync();
             try {
-                Thread.sleep((long)Math.max(1, SYNC_INTERVAL_MS * timeout_factor + last_sync - System.currentTimeMillis()));
+                Thread.sleep(Math.max(1, next_sync - System.currentTimeMillis()));
             } catch (InterruptedException e) { }
         }
     }
@@ -58,7 +58,7 @@ public class IcTinder extends IxiModule {
     }
 
     private void sync() {
-        last_sync = System.currentTimeMillis();
+        next_sync = System.currentTimeMillis() + (long)(SYNC_INTERVAL_MS * timeout_factor);
         if(nodeAddress.startsWith("localhost")) {
             LOGGER.warn("Cannot sync with IcTinder API: please configure IcTinder.ixi first.");
             return;
@@ -81,8 +81,8 @@ public class IcTinder extends IxiModule {
     private Map<String, String> buildRequestParameters(JSONArray neighborsJSON) {
         Map<String, String> requestParameters = new HashMap<>();
         JSONObject statsOfAllNeighbor = collectStatsOfAllNeighbors(neighborsJSON);
-        requestParameters.put("username", discordID);
-        requestParameters.put("node", nodeAddress);
+        requestParameters.put("discord_id", discordID);
+        requestParameters.put("address", nodeAddress);
         requestParameters.put("password", icTinderPassword);
         requestParameters.put("static", staticNeighbors.size()+"");
         requestParameters.put("stats", statsOfAllNeighbor.toString());
@@ -130,7 +130,12 @@ public class IcTinder extends IxiModule {
             throw new RuntimeException("IcTinder API Error: " + responseJSON.getString("error"));
         List<String> neighbors = extractNeighborFromResponse(responseJSON);
         updateIctNeighbor(currentNeighbors, neighbors);
-        //ict.updateProperties(ict.getProperties().toEditable().neighbors(newNeighbors).toFinal());
+
+        long timeout = responseJSON.getLong("timeout");
+        if(timeout > 0) {
+            LOGGER.warn("Node is on timeout for " + timeout + " more seconds.");
+            next_sync = System.currentTimeMillis() + (Math.min(timeout+1, 300))*1000;
+        }
     }
 
     private List<String> extractNeighborFromResponse(JSONObject response) {
